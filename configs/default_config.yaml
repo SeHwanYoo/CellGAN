@@ -1,5 +1,5 @@
 # Dataset
-DATAROOT:                      # directory to prepare your dataset
+DATAROOT: '/home/yoos-bii/Desktop/data_tct/train'                     # directory to prepare your dataset
 DATA_NORM: True                # normalize image to [-1, 1]
 FLIP_AUG: True                 # horizontal/vertical flip augmentation
 NUM_WORKERS: 4                 # how many subprocesses to use for data loading

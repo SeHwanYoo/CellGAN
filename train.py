@@ -4,8 +4,9 @@ import torch
 
 from src.config import Config
 from src.utils import set_seed
-from src.cell_synthesis import train_model
-
+from src.cell_synthesis import train_model\
+    
+import optuna
 
 if __name__ == "__main__":
 
@@ -25,4 +26,19 @@ if __name__ == "__main__":
 
     # Main
     config.print_info()
-    train_model(config)
+    
+    def objective(trial):
+        train_model(config, trial)
+        
+    study = optuna.create_study(direction="minimize")
+    study.optimize(objective, n_trials=100)
+    
+    print("Number of finished trials: ", len(study.trials))
+    trial = study.best_trial
+    
+    print("Best trial:")
+    print("  Value: ", trial.value)
+    print("  Params: ")
+    for key, value in trial.params.items():
+        print("    {}: {}".format(key, value))
+    

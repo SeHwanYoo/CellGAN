@@ -7,8 +7,9 @@ from .dataset import CellDataset, categories, InfiniteSamplerWrapper
 from .loss import GANLoss, R1_loss
 from .fid import get_fid_fn
 
+import optuna
 
-def train_model(config):
+def train_model(config, trial):
     # Loggings
     open_log(config.LOG_PATH)
 
@@ -19,10 +20,15 @@ def train_model(config):
     # Build networks
     netG = create_generator(config).cuda()
     netD = create_discriminator(config).cuda()
+    
+    lr = trial.suggest_float("lr", 1e-5, 2.5e-5, log=True)
 
     # Optimizers
-    optimizer_G = create_optimizer(config, netG, config.LR_G)
-    optimizer_D = create_optimizer(config, netD, config.LR_D)
+    # optimizer_G = create_optimizer(config, netG, config.LR_G)
+    # optimizer_D = create_optimizer(config, netD, config.LR_D)
+    
+    optimizer_G = create_optimizer(config, netG, lr)
+    optimizer_D = create_optimizer(config, netD, lr)
 
     # Loss functions
     GAN_criterion = GANLoss(gan_mode=config.GAN_MODE).cuda()
@@ -99,7 +105,7 @@ def train_model(config):
             optimizer_D.zero_grad()
             total_loss_D.backward()
             optimizer_D.step()
-
+        
         # ----------------------------------------
         #              Train Generator
         # ----------------------------------------
@@ -119,6 +125,12 @@ def train_model(config):
         optimizer_G.zero_grad()
         total_loss_G.backward()
         optimizer_G.step()
+        
+        trial.report(total_loss_G.item(), cur_iter)
+        
+        if trial.should_prune():
+            raise optuna.TrialPruned()
+        
 
         if cur_iter >= config.EMA_START and config.USE_EMA:
             netG_ema.update()
@@ -177,6 +189,8 @@ def train_model(config):
 
             if cur_iter >= config.EMA_START and config.USE_EMA:
                 netG_ema.restore()
+                
+    return total_loss_G.item()
 
 
 def test_model(config):
