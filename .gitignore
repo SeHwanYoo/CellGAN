@@ -1,0 +1,10 @@
+*.zip
+*.log
+*.pth
+wandb
+*.png
+*.pkl
+*.h5
+*.npy
+*.csv
+*.ipynb_checkpoints
