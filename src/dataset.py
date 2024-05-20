@@ -66,7 +66,9 @@ class CellDataset(Dataset):
         with open(os.path.join(dataroot, "list.txt")) as file:
             for line in file:
                 img_path = os.path.join(dataroot, line.strip()).replace('\\', '/')
-                category = line.split('/')[0]
+                # category = line.split('/')[0]
+                category = line.split('\\')[0]
+                
                 if category in self.available_categories:
                     class_index = categories[category]
                     self.data.append([img_path, class_index])
