@@ -63,6 +63,17 @@ categories = {
 #     'Stroma':    [0, 0, 0, 0, 1],
 # }
 
+# categories = {
+#     'AGC':    [0.5, 0.5, 0, 0, 0, 0, 0],
+#     'ASC-H':  [0, 0.5, 0.5, 0, 0, 0, 0],
+#     'ASC-US': [0, 0, 0.5, 0.5, 0, 0, 0],
+#     'GEC':    [0, 0, 0, 0.5, 0.5, 0, 0],
+#     'HSIL':   [0, 0, 0, 0, 0.5, 0.5, 0],
+#     'LSIL':   [0, 0, 0, 0, 0, 0.5, 0.5],
+#     'NILM':   [0.5, 0, 0, 0, 0, 0, 0.5],
+# }
+
+
 
 class CellDataset(Dataset):
     def __init__(self, dataroot, normalize=False, augment=False, cls=None):
