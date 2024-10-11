@@ -10,6 +10,13 @@ import cv2
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
 
+categories = {
+    'Artefacts':    [1, 0, 0, 0],
+    'Low_Contrast': [0, 1, 0, 0],
+    'Low_Texture':  [0, 0, 1, 0],
+    'Out_of_Focus': [0, 0, 0, 1],
+}
+
 
 # One-hot class labels
 # categories = {
@@ -38,15 +45,23 @@ cv2.ocl.setUseOpenCL(False)
 #     '14': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
 # }
 
-categories = {
-    'AGC':    [1, 0, 0, 0, 0, 0, 0],
-    'ASC-H':  [0, 1, 0, 0, 0, 0, 0],
-    'ASC-US': [0, 0, 1, 0, 0, 0, 0],
-    'GEC':    [0, 0, 0, 1, 0, 0, 0],
-    'HSIL':   [0, 0, 0, 0, 1, 0, 0],
-    'LSIL':   [0, 0, 0, 0, 0, 1, 0],
-    'NILM':   [0, 0, 0, 0, 0, 0, 1],
-}
+# categories = {
+#     'AGC':    [1, 0, 0, 0, 0, 0, 0],
+#     'ASC-H':  [0, 1, 0, 0, 0, 0, 0],
+#     'ASC-US': [0, 0, 1, 0, 0, 0, 0],
+#     'GEC':    [0, 0, 0, 1, 0, 0, 0],
+#     'HSIL':   [0, 0, 0, 0, 1, 0, 0],
+#     'LSIL':   [0, 0, 0, 0, 0, 1, 0],
+#     'NILM':   [0, 0, 0, 0, 0, 0, 1],
+# }
+
+# categories = {
+#     'Normal':    [1, 0, 0, 0, 0],
+#     'G3':        [0, 1, 0, 0, 0],
+#     'G4':        [0, 0, 1, 0, 0],
+#     'G5':        [0, 0, 0, 1, 0],
+#     'Stroma':    [0, 0, 0, 0, 1],
+# }
 
 
 class CellDataset(Dataset):
@@ -63,7 +78,7 @@ class CellDataset(Dataset):
 
         # Collect data
         self.data = []
-        with open(os.path.join(dataroot, "list.txt")) as file:
+        with open(os.path.join(dataroot, "Training_Patches.txt")) as file:
             for line in file:
                 img_path = os.path.join(dataroot, line.strip()).replace('\\', '/')
                 # category = line.split('/')[0]
@@ -73,6 +88,8 @@ class CellDataset(Dataset):
                     class_index = categories[category]
                     self.data.append([img_path, class_index])
         random.shuffle(self.data)
+        
+        # print('---------------------->', len(self.data))
 
         # Transformation
         transform_list = []

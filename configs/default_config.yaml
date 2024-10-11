@@ -1,5 +1,5 @@
 # Dataset
-DATAROOT: '/home/yoos-bii/Desktop/data_tct/train'                     # directory to prepare your dataset
+DATAROOT: W:/Sehwan/data/single_cells/single_cells/single                     # directory to prepare your dataset
 DATA_NORM: True                # normalize image to [-1, 1]
 FLIP_AUG: True                 # horizontal/vertical flip augmentation
 NUM_WORKERS: 4                 # how many subprocesses to use for data loading
@@ -7,7 +7,7 @@ NUM_WORKERS: 4                 # how many subprocesses to use for data loading
 
 # Network Parameters
 OUT_CHANNELS: 3                # output RGB image channels
-CLASS_NUM: 15                  # number of classes
+CLASS_NUM: 7                  # number of classes
 COND_SIZE: 128                 # embedding size of class condition
 
 LATENT_DIMS: 128               # basic channels of latent layers
@@ -45,7 +45,7 @@ SAMPLE_PATH: ./checkpoints/samples    # training samples path
 # Training Settings
 DIFF_AUG: color,translation    # differentiable augmentation [color, translation, cutout]
 
-BATCH_SIZE: 64                 # batch size
+BATCH_SIZE: 16                 # batch size
 TOTAL_ITERS: 100000            # number of training iterations
 DIS_ITERS: 1                   # training steps for discriminator per iteration
 
@@ -60,7 +60,7 @@ PRETRAIN_DIS:                  # which discriminator to load
 
 
 # Testing Settings
-MODEL:                         # which generator to test
+MODEL: 100000                  # which generator to test
 TEST_PATH: ./test_results      # testng generated image path
 SAMPLE_NUM: 100                # number of generated images for each category
 EVAL_METRICS: True             # compute evaluation metrics [True | False]

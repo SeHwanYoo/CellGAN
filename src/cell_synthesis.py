@@ -7,9 +7,12 @@ from .dataset import CellDataset, categories, InfiniteSamplerWrapper
 from .loss import GANLoss, R1_loss
 from .fid import get_fid_fn
 
-import optuna
+# import optuna
+from glob import glob
+import wandb
 
-def train_model(config, trial):
+# def train_model(config, trial):
+def train_model(config):
     # Loggings
     open_log(config.LOG_PATH)
 
@@ -21,14 +24,13 @@ def train_model(config, trial):
     netG = create_generator(config).cuda()
     netD = create_discriminator(config).cuda()
     
-    lr = trial.suggest_float("lr", 1e-5, 2.5e-5, log=True)
+    # lr = trial.suggest_float("lr", 1e-5, 2.5e-5, log=True)
+    wandb.watch(netG)
+    wandb.watch(netD)
 
     # Optimizers
-    # optimizer_G = create_optimizer(config, netG, config.LR_G)
-    # optimizer_D = create_optimizer(config, netD, config.LR_D)
-    
-    optimizer_G = create_optimizer(config, netG, lr)
-    optimizer_D = create_optimizer(config, netD, lr)
+    optimizer_G = create_optimizer(config, netG, config.LR_G)
+    optimizer_D = create_optimizer(config, netD, config.LR_D)
 
     # Loss functions
     GAN_criterion = GANLoss(gan_mode=config.GAN_MODE).cuda()
@@ -114,7 +116,7 @@ def train_model(config, trial):
         real_img, label = next(train_loader)
         real_img, label = real_img.cuda().float(), label.cuda().float()
         noise = torch.randn(config.BATCH_SIZE, config.LATENT_DIMS).cuda().float()
-        fake_img = netG(noise, label)
+        fake_img = netG(noise, label, x=real_img)
 
         # Calculate GAN loss
         fake_out = netD(fake_img, label, is_real=False, policy=config.DIFF_AUG)
@@ -126,10 +128,10 @@ def train_model(config, trial):
         total_loss_G.backward()
         optimizer_G.step()
         
-        trial.report(total_loss_G.item(), cur_iter)
+        # trial.report(total_loss_G.item(), cur_iter)
         
-        if trial.should_prune():
-            raise optuna.TrialPruned()
+        # if trial.should_prune():
+        #     raise optuna.TrialPruned()
         
 
         if cur_iter >= config.EMA_START and config.USE_EMA:
@@ -151,6 +153,13 @@ def train_model(config, trial):
                 '[Iteration {:d}] D(x) / D(G(z)): {:.4f} / {:.4f}'
                 .format(cur_iter, real_score, fake_score)
             )
+
+            wandb.log({
+                "D(x)": real_score,
+                "D(G(z))": fake_score,
+                "G loss": total_loss_G.item(),
+                "D loss": total_loss_D.item()
+            })
 
         # ----------------------------------------
         #            Save Checkpoints
@@ -187,10 +196,14 @@ def train_model(config, trial):
             filename = "{:d}.png".format(cur_iter)
             show_image(img_list, filename, config.SAMPLE_PATH, config.DATA_NORM)
 
+            wandb.log({
+                "Generated Images": wandb.Image(os.path.join(config.SAMPLE_PATH, filename))
+            })
+
             if cur_iter >= config.EMA_START and config.USE_EMA:
                 netG_ema.restore()
                 
-    return total_loss_G.item()
+    # return total_loss_G.item()
 
 
 def test_model(config):
@@ -200,6 +213,7 @@ def test_model(config):
 
     # Build network
     netG = create_generator(config).cuda()
+    # netG = create_generator(config, model_path='/home/yoos-bii/Desktop/workspace/CellGAN/checkpoints/models/gen_100000.pth').cuda()
     netG.eval()
 
     # ----------------------------------------
@@ -212,21 +226,103 @@ def test_model(config):
 
         # Visualize generated images
         for category in eval_categories:
+            temp_sample_num = len(glob(os.path.join(config.DATAROOT, category, '*.png')))
+            print(config.DATAROOT)
+            print('category:', category)
+            print('--->', temp_sample_num)
             save_path = os.path.join(config.TEST_PATH, category)
             label = torch.tensor(categories[category]).unsqueeze(0).cuda().float()
-            for img_idx in tqdm(range(config.SAMPLE_NUM), desc="generating {:s}: ".format(category), leave=False):
+            # for img_idx in tqdm(range(config.SAMPLE_NUM), desc="generating {:s}: ".format(category), leave=False):
+            for img_idx in tqdm(range(temp_sample_num), desc="generating {:s}: ".format(category), leave=False):
                 noise = torch.randn(1, config.LATENT_DIMS).cuda().float()
                 gen_img = netG(noise, label)
                 filename = "{:s}_{:05}.png".format(category, img_idx + 1)
                 show_image(gen_img, filename, save_path, config.DATA_NORM)
 
         # FID evaluation
-        if config.EVAL_METRICS:
-            fid_scores = get_fid_fn(config, netG)
-            eval_info = 'FID scores -'
-            for category in eval_categories:
-                eval_info += ' {:s}: {:.4f} |'.format(category, fid_scores[category])
-            eval_info += ' Average: {:.4f}\n'.format(fid_scores['average'])
-            print(eval_info)
+        # if config.EVAL_METRICS:
+        #     fid_scores = get_fid_fn(config, netG)
+        #     eval_info = 'FID scores -'
+        #     for category in eval_categories:
+        #         eval_info += ' {:s}: {:.4f} |'.format(category, fid_scores[category])
+        #     eval_info += ' Average: {:.4f}\n'.format(fid_scores['average'])
+        #     print(eval_info)
+
+    print("Testing finished !!")
+
+# for mixing one-hot 
+def test_model2(config):
+    # ----------------------------------------
+    #      Initialize testing parameters
+    # ----------------------------------------
+
+    # Build network
+    netG = create_generator(config, model_path='/home/yoos-bii/Desktop/workspace/CellGAN/checkpoints/models/gen_100000.pth').cuda()
+    netG.eval()
+
+    # ----------------------------------------
+    #              Start Testing
+    # ----------------------------------------
+    
+    categories = {
+    'AGC':    [1, 0, 0, 0, 0, 0, 0],
+    'ASC-H':  [0, 1, 0, 0, 0, 0, 0],
+    'ASC-US': [0, 0, 1, 0, 0, 0, 0],
+    'GEC':    [0, 0, 0, 1, 0, 0, 0],
+    'HSIL':   [0, 0, 0, 0, 1, 0, 0],
+    'LSIL':   [0, 0, 0, 0, 0, 1, 0],
+    'NILM':   [0, 0, 0, 0, 0, 0, 1],
+    }
+    
+    
+    # categories = {
+    # 'AGC':    [0.5, 0.5, 0, 0, 0, 0, 0],
+    # 'ASC-H':  [0, 0.5, 0.5, 0, 0, 0, 0],
+    # 'ASC-US': [0, 0, 0.5, 0.5, 0, 0, 0],
+    # 'GEC':    [0, 0, 0, 0.5, 0.5, 0, 0],
+    # 'HSIL':   [0, 0, 0, 0, 0.5, 0.5, 0],
+    # 'LSIL':   [0, 0, 0, 0, 0, 0.5, 0.5],
+    # 'NILM':   [0.5, 0, 0, 0, 0, 0, 0.5],
+    # }
+
+    print("Start testing ......")
+    eval_categories = list(categories.keys())
+    with torch.no_grad():
+
+        # Visualize generated images
+        # for category in eval_categories:
+        for idx, cat in enumerate(['AGC', 'ASC-H', 'ASC-US', 'GEC', 'HSIL', 'LSIL', 'NILM']):
+            
+            if cat != 'GEC':
+            
+                # for prob in range(0.1, 1, 0.1):
+                for prob in range(1, 10, 1):
+                    prob /= 10
+                    save_path = os.path.join(config.TEST_PATH, cat, str(prob))
+                    # label = torch.tensor(categories[cat]).unsqueeze(0).cuda().float()
+                    label = [0 for _ in range(7)]
+                    label[idx] = prob
+                    gec_label = 1 - prob
+                    label[3] = gec_label
+                    
+                    label = torch.tensor(label).unsqueeze(0).cuda().float()
+                    # print(label)
+                    # exit()
+                    
+                    for img_idx in tqdm(range(config.SAMPLE_NUM), desc="generating {:s}: ".format(cat), leave=False):
+                        noise = torch.randn(1, config.LATENT_DIMS).cuda().float()
+                        gen_img = netG(noise, label)
+                        filename = "{:s}_{:05}.png".format(cat, img_idx + 1)
+                        show_image(gen_img, filename, save_path, config.DATA_NORM)
+                        
+
+        # FID evaluation
+        # if config.EVAL_METRICS:
+        #     fid_scores = get_fid_fn(config, netG)
+        #     eval_info = 'FID scores -'
+        #     for category in eval_categories:
+        #         eval_info += ' {:s}: {:.4f} |'.format(category, fid_scores[category])
+        #     eval_info += ' Average: {:.4f}\n'.format(fid_scores['average'])
+        #     print(eval_info)
 
     print("Testing finished !!")
