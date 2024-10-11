@@ -7,8 +7,6 @@ from .dataset import CellDataset, categories, InfiniteSamplerWrapper
 from .loss import GANLoss, R1_loss
 from .fid import get_fid_fn
 
-# import optuna
-from glob import glob
 import wandb
 
 # def train_model(config, trial):
@@ -23,6 +21,9 @@ def train_model(config):
     # Build networks
     netG = create_generator(config).cuda()
     netD = create_discriminator(config).cuda()
+    
+    wandb.watch(netG, log="all")
+    wandb.watch(netD, log="all")
     
     # lr = trial.suggest_float("lr", 1e-5, 2.5e-5, log=True)
     wandb.watch(netG)
@@ -128,6 +129,12 @@ def train_model(config):
         total_loss_G.backward()
         optimizer_G.step()
         
+        wandb.log({"total_loss_G": total_loss_G.item(), "total_loss_D": total_loss_D.item(), "R1": R1.item(), "rec_loss": rec_loss.item(), "GAN_loss_G": GAN_loss_G.item(), "GAN_loss_D": GAN_loss_D.item()}, step=cur_iter)
+        
+        wandb.log({"real_score": real_out['logits'].mean().item(), "fake_score": fake_out['logits'].mean().item()}, step=cur_iter)
+        
+        wandb.log({"lr_G": optimizer_G.param_groups[0]['lr'], "lr_D": optimizer_D.param_groups[0]['lr']}, step=cur_iter)
+        
         # trial.report(total_loss_G.item(), cur_iter)
         
         # if trial.should_prune():
@@ -221,23 +228,18 @@ def test_model(config):
     # ----------------------------------------
 
     print("Start testing ......")
-    eval_categories = list(categories.keys())
-    with torch.no_grad():
+    # eval_categories = list(categories.keys())
+    # with torch.no_grad():
 
         # Visualize generated images
-        for category in eval_categories:
-            temp_sample_num = len(glob(os.path.join(config.DATAROOT, category, '*.png')))
-            print(config.DATAROOT)
-            print('category:', category)
-            print('--->', temp_sample_num)
-            save_path = os.path.join(config.TEST_PATH, category)
-            label = torch.tensor(categories[category]).unsqueeze(0).cuda().float()
-            # for img_idx in tqdm(range(config.SAMPLE_NUM), desc="generating {:s}: ".format(category), leave=False):
-            for img_idx in tqdm(range(temp_sample_num), desc="generating {:s}: ".format(category), leave=False):
-                noise = torch.randn(1, config.LATENT_DIMS).cuda().float()
-                gen_img = netG(noise, label)
-                filename = "{:s}_{:05}.png".format(category, img_idx + 1)
-                show_image(gen_img, filename, save_path, config.DATA_NORM)
+        # for category in eval_categories:
+        #     save_path = os.path.join(config.TEST_PATH, category)
+        #     label = torch.tensor(categories[category]).unsqueeze(0).cuda().float()
+        #     for img_idx in tqdm(range(config.SAMPLE_NUM), desc="generating {:s}: ".format(category), leave=False):
+        #         noise = torch.randn(1, config.LATENT_DIMS).cuda().float()
+        #         gen_img = netG(noise, label)
+        #         filename = "{:s}_{:05}.png".format(category, img_idx + 1)
+        #         show_image(gen_img, filename, save_path, config.DATA_NORM)
 
         # FID evaluation
         # if config.EVAL_METRICS:

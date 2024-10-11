@@ -1,27 +1,13 @@
-import os
-import argparse
-import torch
+from PIL import Image
+import numpy as np
 
-from src.config import Config
-from src.utils import set_seed
-from src.cell_synthesis import test_model, test_model2
+img_path = '/home/yoos-bii/Desktop/ALL/Normal/P9770_A12_Scan1_Normal_1_28001_39501.tif'
 
-
-if __name__ == "__main__":
-
-    # Configuration
-    parser = argparse.ArgumentParser(description="Configuration")
-    parser.add_argument('--config', type=str, default='default_config', help='configuration filename')
-    args = parser.parse_args()
-    config = Config(filename=args.config, mode='test')
-
-    # Device
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-    os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(str(e) for e in config.GPU)
-    torch.backends.cudnn.benchmark = True  # cudnn auto-tuner
-
-    # Random seed
-    set_seed(config.MANUAL_SEED)
-
-    # Main
-    test_model2(config)
+try:
+    with Image.open(img_path) as img:
+        img = img.convert("RGB")  # [R, G, B] 형식으로 변환
+        img = np.array(img)  # 이미지 데이터를 numpy 배열로 변환
+        # img를 OpenCV 형식으로 변환하려면
+        img = img[:, :, ::-1]  # [R, G, B] -> [B, G, R]
+except Exception as e:
+    print(f"Error: {e}")

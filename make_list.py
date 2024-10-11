@@ -17,17 +17,10 @@ if __name__ == "__main__":
     # test_dir = os.path.join(data_dir, 'test')
     
     # Train
-    train_images = glob(os.path.join(config.DATAROOT, '*', '*.tif'))
+    train_images = glob(os.path.join(config.DATAROOT, '*', '*.png'))
     with open(os.path.join(config.DATAROOT, 'list.txt'), 'w') as f:
         for ii in train_images:
             ii = ii.replace('\\', '/')
-            # f.write(" ".join(ii.split('/')[-2:]) + '\n')
             f.write('/'.join(ii.split('/')[-2:]) + '\n')
-    
-    # Test
-    # test_images = glob(os.path.join(test_dir, '*', '*.jpg'))
-    # with open(os.path.join(data_dir, 'test_list.txt'), 'w') as f:
-    #     for ii in test_images:
-    #         f.write(ii + '\n')
     
     print('Done!')

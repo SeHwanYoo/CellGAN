@@ -1,0 +1,37 @@
+program: train.py
+method: random 
+name: sweep_config1
+metric:
+  goal: minimize
+  name: GAN_loss_G
+parameters: 
+  batch_size: 
+    values: [16, 32, 64]
+  total_iters: 
+    values: [100000, 150000]
+  gan_mode: 
+    values: [hinge, lsgan, wgan]
+  recon_mode: 
+    values: [l1, mse]
+  lr_g:
+    min: 1.5e-4
+    max: 3.5e-4
+  lr_d:
+    min: 1.5e-4
+    max: 3.5e-4
+  ema_decay:
+    min: 0.9
+    max: 0.9999
+  cond_size: 
+    values: [64, 128]
+  map_layers: 
+    values: [4, 5, 6]
+  gen_feat_num: 
+    values: [32, 64, 128]
+  dis_feat_num: 
+    values: [32, 64, 128]
+  init_type: 
+    values: [kaiming, xavier, orthogonal]
+  init_gain: 
+    min: 0.01
+    max: 0.03

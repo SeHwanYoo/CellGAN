@@ -34,6 +34,7 @@ def extract_loader_features(loader, inception, device):
 @torch.no_grad()
 def extract_model_features(config, generator, inception, category, num_samples, device):
     num_iters = int(np.floor(num_samples / config.FID_BATCH))
+    # print('num_iters -->', num_iters)
     feature_list = []
     for _ in tqdm(range(num_iters), desc="extracting generated data features for FID: ", leave=False):
         noises = torch.randn(config.FID_BATCH, config.LATENT_DIMS, 1, 1).to(device)
@@ -43,6 +44,8 @@ def extract_model_features(config, generator, inception, category, num_samples, 
             batch = (batch + 1) / 2
         feature = inception(batch)[0].view(batch.shape[0], -1)
         feature_list.append(feature)
+        
+    # print('feature_list -->', len(feature_list))
     
     features = torch.cat(feature_list, 0).to("cpu").numpy()
 
@@ -81,11 +84,12 @@ def get_fid_fn(config, generator, device='cuda'):
     # Get FID for each category
     fid_scores = {}
     for category in categories.keys():
+    # for category in ['NILM', 'HSIL', 'LSIL', 'ASC-US']:        
         # Real dataloader
         dataset = CellDataset(config.DATAROOT, normalize=False, cls=category)
         data_loader = DataLoader(dataset, config.FID_BATCH, shuffle=True, drop_last=True,
                                  num_workers=config.NUM_WORKERS)
-
+        
         # Get feature statistics for real data
         real_feat = extract_loader_features(data_loader, inception, device)
         real_mean = np.mean(real_feat, 0)
@@ -99,6 +103,7 @@ def get_fid_fn(config, generator, device='cuda'):
 
         # Compute FID
         fid = compute_fid(gen_mean, gen_cov, real_mean, real_cov)
+        print('FID score for {:s}: {:.4f}'.format(category, fid))
         fid_scores[category] = fid
 
     # Get average FID
